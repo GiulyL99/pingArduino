@@ -1,3 +1,3 @@
-# serialPingArduino
+# pingArduino
 
-Examples for pinging via Serial between Arduinos
+Examples for pinging a communication signal between Arduinos
