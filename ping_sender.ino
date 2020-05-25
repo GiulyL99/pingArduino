@@ -12,7 +12,7 @@ void loop() {
   //Send message
   unsigned long send_millis=millis();
   
-  char* TEXT="TESTE 123 ALOALO";
+  char* TEXT="MY TEXT HERE";
   char* buf_sum;
   char* TOTAL_MESSAGE;
   
