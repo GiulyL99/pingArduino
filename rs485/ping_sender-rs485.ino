@@ -1,60 +1,83 @@
 #include <SoftwareSerial.h>
-#define LED_PIN 13
-#define SEP ";"
+#include <string.h>
 
+#define LED_PIN 13
+#define RX 10
+#define TX 11
 #define DE_RE 3
-#define RS_TX 11
-#define RS_RX 10
+#define SEP ";"
 
 #define RS_Transmit HIGH
 #define RS_Receive LOW
 
-SoftwareSerial rs485Serial(RS_RX,RS_TX);
+// initialize the library with the numbers of the interface pins
+SoftwareSerial srl(RX,TX);
 
 void setup() {
-  // put your setup code here, to run once:
+  // set up the LCD's number of columns and rows:
+  // Print a message to the LCD.
+  
+  //Inicializa a serial do Arduino
+  srl.begin(4800);
   Serial.begin(9600);
+	
   pinMode(LED_PIN,OUTPUT);
   pinMode(DE_RE,OUTPUT);
   
-  rs485Serial.begin(9600); //verificar baud rate
 }
 
-void loop() {
+void loop() { 
   //Send message
   unsigned long send_millis=millis();
   
-  char* TEXT="TESTE 123 ALOALO";
-  char* buf_sum;
-  char* TOTAL_MESSAGE;
+  char TEXT[]="TESTE 123 ALOALO";
+  char buf_sum[5];
+  char TOTAL_MESSAGE[128];
   
   itoa(checksum(TEXT),buf_sum,16);
-  strcat(TOTAL_MESSAGE,TEXT);
+  strcpy(TOTAL_MESSAGE,TEXT);
   strcat(TOTAL_MESSAGE,SEP);
   strcat(TOTAL_MESSAGE,buf_sum);
-  
-  digitalWrite(DE_RE,RS_Transmit);
-  rs485Serial.write(TOTAL_MESSAGE); //send in format "TEXT;CHECKSUM(HEX)"
-  digitalWrite(DE_RE,RS_Receive);
 
+  int delays=0;
+  digitalWrite(DE_RE,RS_Transmit);
+  int sentBytes=srl.print(TOTAL_MESSAGE); //send in format "TEXT;CHECKSUM(HEX)"
+digitalWrite(DE_RE,RS_Receive);
+  //Serial.println(sentBytes);
+  Serial.print("sent: ");
+  Serial.println(TOTAL_MESSAGE);
+  digitalWrite(LED_PIN,HIGH);
+        delay(100);
+        digitalWrite(LED_PIN,LOW);
+        delays+=1;
   
   //Get reply
-  while (!rs485Serial.available())
+  while (!srl.available())
   {
     int i=0;
   }
   
-  char* received;
-  int availableBytes=rs485Serial.available();
-  for (int i=0;i<availableBytes;i++)
+  char received[128];
+  int j=0;
+  while (srl.available())
   {
-    received[i]=rs485Serial.read();
+    received[j]=srl.read();
+    delay(1);
+    j++;
   }
   
+  Serial.print("recv: ");
+  Serial.println(received);
+  
   char* split = strtok(received,SEP); //receive in format "TEXT;CHECKSUM(HEX);REC_CHECKED(BIT)"
+  
   int i=0;
+  
   while (split != NULL)
   {
+    //strcpy(split,fatia);
+    //Serial.println(split);
+    
     if (i==0)
     {
       if (split==TEXT)
@@ -62,6 +85,7 @@ void loop() {
         digitalWrite(LED_PIN,HIGH);
         delay(100);
         digitalWrite(LED_PIN,LOW);
+        delays+=1;
       }
     }
     if (i==1)
@@ -71,6 +95,7 @@ void loop() {
         digitalWrite(LED_PIN,HIGH);
         delay(100);
         digitalWrite(LED_PIN,LOW);
+        delays+=1;
       }
     }
     if (i==2)
@@ -80,6 +105,7 @@ void loop() {
         digitalWrite(LED_PIN,HIGH);
         delay(100);
         digitalWrite(LED_PIN,LOW);
+        delays+=1;
       }
     }
     
@@ -88,24 +114,24 @@ void loop() {
   }
   
   //End
-  unsigned long elapsed_time=millis()-send_millis;
-  Serial.println(received);
-  Serial.print(elapsed_time);
-  Serial.println(F(" ms"));
+  unsigned long elapsed_time=millis()-send_millis-(delays*100);
+    Serial.print(elapsed_time);
+  Serial.println(" ms");  
   
   delay(1000);
-
 }
 
 int checksum(char* str)
 {
   int sum=0;
-  unsigned int numOfChars = sizeof(str)/sizeof(str[0]);
+  unsigned int numOfChars = strlen(str);
+  //Serial.println(numOfChars);
   for(byte b=0; b<numOfChars; b++)
   {
    sum += str[b];
+    //Serial.println(str[b]);
   }
-
+  
+  //Serial.println(sum);
   return sum;
 }
-
