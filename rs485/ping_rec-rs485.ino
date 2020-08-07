@@ -1,70 +1,96 @@
 #include <SoftwareSerial.h>
-#define LED_PIN 13
-#define SEP ";"
+#include <string.h>
 
+#define LED_PIN 13
+#define RX 10
+#define TX 11
 #define DE_RE 3
-#define RS_TX 11
-#define RS_RX 10
+#define SEP ";"
 
 #define RS_Transmit HIGH
 #define RS_Receive LOW
 
-SoftwareSerial rs485Serial(RS_RX,RS_TX);
+// initialize the library with the numbers of the interface pins
+SoftwareSerial srl(RX,TX);
 
 void setup() {
-  // put your setup code here, to run once:
+  // set up the LCD's number of columns and rows:
+  // Print a message to the LCD.
+  //lcd.print("hello, world!");
+
+  //Inicializa a serial do modulo RS485
+  srl.begin(4800);
   Serial.begin(9600);
-  
   pinMode(LED_PIN,OUTPUT);
   pinMode(DE_RE,OUTPUT);
-  
-  rs485Serial.begin(9600); //verificar baud rate
+
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
 
   //Receive
-  while (!rs485Serial.available())
+  while (!srl.available())
   {
     int i=0;
+    digitalWrite(LED_PIN,HIGH);
+    //delay(100);
+    //lcd.setCursor(0, 0);
+  	//lcd.print(srl.available());
   }
+    digitalWrite(LED_PIN,LOW);
+  //lcd.setCursor(0, 0);
+  	//lcd.print(srl.available());
   
-  char* received;
-  char* TEXT;
-  char* buf_sum;
+  char received[128];
+  char TEXT[128];
+  int buf_sum;
   int checked;
   
+  int j=0;
   digitalWrite(DE_RE,RS_Receive);
-  int availableBytes=rs485Serial.available();
-  for (int i=0;i<availableBytes;i++)
+  while (srl.available())
   {
-    received[i]=rs485Serial.read();
+    received[j]=srl.read();
+    delay(1);
+    j++;
   }
   
+  Serial.print("recv: ");
   Serial.println(received);
   
   char* split = strtok(received,SEP); //receive in format "TEXT;CHECKSUM(HEX)"
+  
   int i=0;
   while (split != NULL)
   {
+    //strcpy(split,fatia);
+    //Serial.println(split);
+    
     if (i==0)
     {
-      digitalWrite(LED_PIN,HIGH);
+      /*digitalWrite(LED_PIN,HIGH);
       delay(100);
-      digitalWrite(LED_PIN,LOW);
+      digitalWrite(LED_PIN,LOW);*/
 
-      TEXT=split;
-      itoa(checksum(TEXT),buf_sum,16);
+      strcpy(TEXT,split);
+      //Serial.println(TEXT);
+      buf_sum=checksum(TEXT);
       
     }
     if (i==1)
     {
-      digitalWrite(LED_PIN,HIGH);
+      /*digitalWrite(LED_PIN,HIGH);
       delay(100);
-      digitalWrite(LED_PIN,LOW);
+      digitalWrite(LED_PIN,LOW);*/
+
+      //int rec_sum=atoi(split);
       
-      checked= buf_sum==split;
+      int rec_sum=strtol(split,NULL,16);
+      //Serial.println(split);
+      //Serial.println(buf_sum);
+      //Serial.println(rec_sum);
+      checked= int(buf_sum==rec_sum);
     }
         
     split = strtok (NULL,SEP);
@@ -72,29 +98,36 @@ void loop() {
   }
 
   //Reply
-  char* TOTAL_MESSAGE;
-  char* checked_char;
+  char TOTAL_MESSAGE[128];
+  char checked_char[2];
   itoa(checked,checked_char,10);
+  char buf_sum_char[5];
+  itoa(buf_sum,buf_sum_char,16);
   
-  strcat(TOTAL_MESSAGE,TEXT);
+  strcpy(TOTAL_MESSAGE,TEXT);
   strcat(TOTAL_MESSAGE,SEP);
-  strcat(TOTAL_MESSAGE,buf_sum);
+  strcat(TOTAL_MESSAGE,buf_sum_char);
   strcat(TOTAL_MESSAGE,SEP);
   strcat(TOTAL_MESSAGE,checked_char);
-
+	
   digitalWrite(DE_RE,RS_Transmit);
-  rs485Serial.write(TOTAL_MESSAGE); //send in format "TEXT;CHECKSUM(HEX);REC_CHECKED(BIT)"
+  srl.print(TOTAL_MESSAGE); //send in format "TEXT;CHECKSUM(HEX);REC_CHECKED(BIT)"
   digitalWrite(DE_RE,RS_Receive);
+  Serial.print("sent: ");
+  Serial.println(TOTAL_MESSAGE);
+
 }
 
 int checksum(char* str)
 {
   int sum=0;
-  unsigned int numOfChars = sizeof(str)/sizeof(str[0]);
+  unsigned int numOfChars = strlen(str);
+  //Serial.println(numOfChars);
   for(byte b=0; b<numOfChars; b++)
   {
    sum += str[b];
+    //Serial.println(str[b]);
   }
-
+  //Serial.println(sum);
   return sum;
 }
