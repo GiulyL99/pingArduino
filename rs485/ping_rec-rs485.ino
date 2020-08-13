@@ -4,7 +4,11 @@
 #define LED_PIN 13
 #define RX 10
 #define TX 11
+#define DE_RE 3
 #define SEP ";"
+
+#define RS_Transmit HIGH
+#define RS_Receive LOW
 
 // initialize the library with the numbers of the interface pins
 SoftwareSerial srl(RX,TX);
@@ -18,6 +22,7 @@ void setup() {
   srl.begin(4800);
   Serial.begin(9600);
   pinMode(LED_PIN,OUTPUT);
+  pinMode(DE_RE,OUTPUT);
 
 }
 
@@ -43,6 +48,7 @@ void loop() {
   int checked;
   
   int j=0;
+  digitalWrite(DE_RE,RS_Receive);
   while (srl.available())
   {
     received[j]=srl.read();
@@ -103,8 +109,10 @@ void loop() {
   strcat(TOTAL_MESSAGE,buf_sum_char);
   strcat(TOTAL_MESSAGE,SEP);
   strcat(TOTAL_MESSAGE,checked_char);
-
+	
+  digitalWrite(DE_RE,RS_Transmit);
   srl.print(TOTAL_MESSAGE); //send in format "TEXT;CHECKSUM(HEX);REC_CHECKED(BIT)"
+  digitalWrite(DE_RE,RS_Receive);
   Serial.print("sent: ");
   Serial.println(TOTAL_MESSAGE);
 
